@@ -1,7 +1,7 @@
 ##Read the CSV file into a list of dictionaries.
 
 
-def csvToList(filename, window, header=True):
+def csvToList(filename, window=None, header=True):
     ## Set header to false if there are no headers.
 
     ## Read the file into a list of lines.
@@ -28,7 +28,10 @@ def csvToList(filename, window, header=True):
         percent = round((count/total)*100,1)
         if percent != oldPercent:
             oldPercent = percent
-            window.statusUpdate("Creating dictionaries: "+str(oldPercent)+"%")
+            if window != None:
+                window.statusUpdate("Creating dictionaries: "+str(oldPercent)+"%")
+            else:
+                print("Creating dictionaries: "+str(oldPercent)+"%")
     return outputList
 
 

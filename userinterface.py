@@ -5,11 +5,15 @@ import traceback
 from tkinter import *
 import tkinter.filedialog as filedialog
 
-import fileop, distance, google, visuals, settings
+import fileop, distance, google, visuals, settings, data_cleaning
 
-def getAddress(data):
+def getAddress(data, unit=False):
     ##Feed in a dict of data and return the address.
-    house = str(data["SIT HOUSE NUMBER"])+" "+data["SITUS STREET NAME"]+" "+data["SITUS MODE"]
+    if unit and len(str(data["SIT UNIT NUMBER"])) > 0:
+        unit = " #"+str(data["SIT UNIT NUMBER"])
+    else:
+        unit = ""
+    house = str(data["SIT HOUSE NUMBER"])+" "+data["SITUS STREET NAME"]+" "+data["SITUS MODE"]+unit
     city = data["SITUS CITY"]+" "+data["SIT STATE"]+" "+str(data["SITUS ZIP CODE"])
     return house+" "+city
 
@@ -127,6 +131,7 @@ class Window():
         self.statusUpdate("Opening file...")
         try:
             data = fileop.csvToList(filename,self)
+            print(len(data))
         except:
             traceback.print_exc()
             self.statusUpdate("There was an issue loading that file.")
@@ -142,8 +147,9 @@ class Window():
 
     def cleanData(self):
         data = [i for i in self.addressDict.values()]
+        print(len(data))
         self.statusUpdate("Cleaning data...")
-        data = google.cleanData(data, self)
+        data = data_cleaning.cleanData(data, self)
         self.dataListToDisplay(data)
         self.statusUpdate("Ready.")
 
@@ -158,7 +164,13 @@ class Window():
         self.addressList.delete(0,END)
         self.statusUpdate("Adding to listbox...")
         for i in data:
-            address = getAddress(i)
+            count = 0 #In case the address is already there.
+            address = getAddress(i,unit=True)
+            a = address
+            while a in self.addressDict:
+                count += 1
+                a = address + " #" + str(count)
+            address = a
             self.addressDict[address] = i
             self.addressList.insert(END, address)
 

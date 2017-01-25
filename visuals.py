@@ -54,14 +54,13 @@ def visualizeSet(data, window):
                 p = (d["ELEVATION"]-minval)/rangeval #Percent of where it stands in the elevation graph.
                 rgb = (p, 0, 1-p)
                 if y!='NULL' and x != 'NULL':
-                    plt.plot([x],[y],"o",color=rgb)
+                    plt.plot([x],[y],d["ELEVATION"],marker="o",color=rgb)
 
         count += 1
         percent = round((count/total)*100, 1)
         if oldPercent != percent:
             oldPercent = percent
             window.statusUpdate("Plotting points: "+str(oldPercent)+"%")
-    plt.plot(0,0,"o",color="green")
 
 def display(name):
     plt.title(name)

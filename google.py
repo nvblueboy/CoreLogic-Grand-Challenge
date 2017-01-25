@@ -8,7 +8,7 @@ from geopy.geocoders import GoogleV3
 import math
 
 def cleanData(data, window):
-    geolocator = GoogleV3(api_key="AIzaSyBdtuUu0mfgQCMDQ8awuW1yEn9b8iGtWmE ")
+    geolocator = GoogleV3(api_key="AIzaSyBdtuUu0mfgQCMDQ8awuW1yEn9b8iGtWmE")
     oldPercent = 0
     count = 0
     total = len(data)
