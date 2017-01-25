@@ -272,12 +272,15 @@ class Window():
             dataWithEle = google.getElevations(newData, self.google_key, self)
         else:
             dataWithEle = newData
+        #If there isn't elevation data available for some reason (or it is a string), filter it out.
+        dataWithEle = [d for d in dataWithEle if "ELEVATION" in d]
+        dataWithEle = [d for d in dataWithEle if type(d["ELEVATION"]) != str]
         #If the user wants only obstructions, filter out properties that don't
         #obstruct the view.
         if obstructions:
             self.statusUpdate("Getting obstructions.")
             #Get the elevation of the current address.
-            ele = [i["ELEVATION"] for i in dataWithEle if data["PARCEL LEVEL LATITUDE"]==latlong[0] and data["PARCEL LEVEL LONGITUDE"] == latlong[1]][0]
+            ele = [i["ELEVATION"] for i in dataWithEle if i["PARCEL LEVEL LATITUDE"]==latlong[0] and i["PARCEL LEVEL LONGITUDE"] == latlong[1]][0]
             #Adjust for the offset variable.
             ele = ele - offset
             #Filter out all properties that are greater than the ele variable.
@@ -293,9 +296,10 @@ class Window():
         if self.plotDataVar.get():
             self.statusUpdate("Visualizing data...")
             if self.searchWithinVar.get():
-                visuals.visualizeRadius(dataWithEle,latlong)
+                visuals.visualizeRadius(dataWithEle,latlong, self)
             else:
-                visuals.visualizeSet(dataWithEle)
+                visuals.visualizeSet(dataWithEle, self)
+                address = "Whole dataset"
             visuals.display(address)
         self.statusUpdate("Ready.")
         return

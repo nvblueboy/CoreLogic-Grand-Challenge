@@ -1,0 +1,4 @@
+*.ini
+data/
+data_save/
+__pycache__/
