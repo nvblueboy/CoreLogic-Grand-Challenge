@@ -5,11 +5,15 @@ import traceback
 from tkinter import *
 import tkinter.filedialog as filedialog
 
-import fileop, distance, google, visuals, settings
+import fileop, distance, google, visuals, settings, data_cleaning, earth
 
-def getAddress(data):
+def getAddress(data, unit=False):
     ##Feed in a dict of data and return the address.
-    house = str(data["SIT HOUSE NUMBER"])+" "+data["SITUS STREET NAME"]+" "+data["SITUS MODE"]
+    if unit and len(str(data["SIT UNIT NUMBER"])) > 0:
+        unit = " #"+str(data["SIT UNIT NUMBER"])
+    else:
+        unit = ""
+    house = str(data["SIT HOUSE NUMBER"])+" "+data["SITUS STREET NAME"]+" "+data["SITUS MODE"]+unit
     city = data["SITUS CITY"]+" "+data["SIT STATE"]+" "+str(data["SITUS ZIP CODE"])
     return house+" "+city
 
@@ -75,6 +79,12 @@ class Window():
         self.plotDataVar = IntVar()
         self.plotData = Checkbutton(self.rightFrame, text = "Plot Data", variable = self.plotDataVar)
         self.plotData.pack()
+        self.kmlFileVar = IntVar()
+        self.kmlFile = Checkbutton(self.rightFrame, text = "Write to KML", command=self.kmlCB, variable = self.kmlFileVar)
+        self.kmlFile.pack()
+        self.kmlFileChoose = Button(self.rightFrame, text = "Choose file...", command= self.chooseKMLFile, state = DISABLED)
+        self.kmlFileChoose.pack()
+        self.kmlStr = ""
         #Create the "Radius" section.
         self.radiusFrame = Frame(self.rightFrame)
         self.radiusFrame.pack()
@@ -93,6 +103,11 @@ class Window():
         self.obstructionsOnlyVar = IntVar()
         self.obstructionsOnly = Checkbutton(self.rightFrame, text="Obstructions only", variable = self.obstructionsOnlyVar)
         self.obstructionsOnly.pack()
+		
+        #Create the include geography checkbox.
+        self.includeGeographyVar = IntVar()
+        self.includeGeography = Checkbutton(self.rightFrame, text="Include Geography", variable = self.includeGeographyVar)
+        self.includeGeography.pack()
 
         #Create the offset section.
         self.offsetFrame = Frame(self.rightFrame)
@@ -142,8 +157,9 @@ class Window():
 
     def cleanData(self):
         data = [i for i in self.addressDict.values()]
+        print(len(data))
         self.statusUpdate("Cleaning data...")
-        data = google.cleanData(data, self)
+        data = data_cleaning.cleanData(data, self)
         self.dataListToDisplay(data)
         self.statusUpdate("Ready.")
 
@@ -158,7 +174,13 @@ class Window():
         self.addressList.delete(0,END)
         self.statusUpdate("Adding to listbox...")
         for i in data:
-            address = getAddress(i)
+            count = 0 #In case the address is already there.
+            address = getAddress(i,unit=True)
+            a = address
+            while a in self.addressDict:
+                count += 1
+                a = address + " #" + str(count)
+            address = a
             self.addressDict[address] = i
             self.addressList.insert(END, address)
 
@@ -169,7 +191,25 @@ class Window():
         for i in addresses:
             if searchTerm in i.lower():
                 self.addressList.insert(END, i)
+    def kmlCB(self):
+        if self.kmlFileVar.get():
+            self.kmlFileChoose.config(state=NORMAL)
+            self.chooseKMLFile()
+        else:
+            self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
 
+    def chooseKMLFile(self):
+        filename = filedialog.asksaveasfilename(initialdir = self.save_folder)
+        if filename == "":
+            self.status.set("Please input a file location.")
+            self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
+            self.kmlFileVar.set(0)
+            return
+        else:
+            self.kmlStr = filename
+            niceFilename = filename[filename.rfind("/")+1:]
+            self.kmlFileChoose.config(text=niceFilename, state=NORMAL)
+            
     def writeCB(self):
         if self.writeToFileVar.get():
             self.fileChoose.config(state=NORMAL)
@@ -204,6 +244,7 @@ class Window():
         self.radiusUnits.config(state=mode)
         self.radiusEntry.config(state=mode)
         self.obstructionsOnly.config(state=mode)
+        self.includeGeography.config(state=mode)
         self.offsetUnits.config(state=mode)
         self.offsetEntry.config(state=mode)
         self.radiusLabel.config(state=mode)
@@ -272,12 +313,17 @@ class Window():
             dataWithEle = google.getElevations(newData, self.google_key, self)
         else:
             dataWithEle = newData
+        #If there isn't elevation data available for some reason (or it is a string), filter it out.
+        dataWithEle = [d for d in dataWithEle if "ELEVATION" in d]
+        dataWithEle = [d for d in dataWithEle if type(d["ELEVATION"]) != str]
+        if self.includeGeographyVar.get():
+            dataWithEle.extend(google.getGeoElevations(latlong, self.google_key, self, radius))
         #If the user wants only obstructions, filter out properties that don't
         #obstruct the view.
         if obstructions:
             self.statusUpdate("Getting obstructions.")
             #Get the elevation of the current address.
-            ele = [i["ELEVATION"] for i in dataWithEle if data["PARCEL LEVEL LATITUDE"]==latlong[0] and data["PARCEL LEVEL LONGITUDE"] == latlong[1]][0]
+            ele = [i["ELEVATION"] for i in dataWithEle if i["PARCEL LEVEL LATITUDE"]==latlong[0] and i["PARCEL LEVEL LONGITUDE"] == latlong[1]][0]
             #Adjust for the offset variable.
             ele = ele - offset
             #Filter out all properties that are greater than the ele variable.
@@ -289,13 +335,18 @@ class Window():
             fileHandle = open(self.fileOutput, "w")
             fileHandle.write(outString)
             fileHandle.close()
+        #If we're outputting to KML, do it.
+        if self.kmlFileVar.get():
+            self.statusUpdate("Outputting to KML...")
+            earth.visualizeEarth(dataWithEle, self.kmlStr, self)
         #If we're plotting the data, plot it and display it.
         if self.plotDataVar.get():
             self.statusUpdate("Visualizing data...")
             if self.searchWithinVar.get():
-                visuals.visualizeRadius(dataWithEle,latlong)
+                visuals.visualizeRadius(dataWithEle,latlong, self)
             else:
-                visuals.visualizeSet(dataWithEle)
+                visuals.visualizeSet(dataWithEle, self)
+                address = "Whole dataset"
             visuals.display(address)
         self.statusUpdate("Ready.")
         return
