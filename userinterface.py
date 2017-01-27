@@ -104,10 +104,6 @@ class Window():
         self.obstructionsOnly = Checkbutton(self.rightFrame, text="Obstructions only", variable = self.obstructionsOnlyVar)
         self.obstructionsOnly.pack()
 
-        #Create the include geography checkbox.
-        self.includeGeographyVar = IntVar()
-        self.includeGeography = Checkbutton(self.rightFrame, text="Include Geography", variable = self.includeGeographyVar)
-        self.includeGeography.pack()
 
         #Create the include geography checkbox.
         self.includeGeographyVar = IntVar()
