@@ -5,7 +5,7 @@ import traceback
 from tkinter import *
 import tkinter.filedialog as filedialog
 
-import fileop, distance, google, visuals, settings, data_cleaning
+import fileop, distance, google, visuals, settings, data_cleaning, earth
 
 def getAddress(data, unit=False):
     ##Feed in a dict of data and return the address.
@@ -79,6 +79,12 @@ class Window():
         self.plotDataVar = IntVar()
         self.plotData = Checkbutton(self.rightFrame, text = "Plot Data", variable = self.plotDataVar)
         self.plotData.pack()
+        self.kmlFileVar = IntVar()
+        self.kmlFile = Checkbutton(self.rightFrame, text = "Write to KML", command=self.kmlCB, variable = self.kmlFileVar)
+        self.kmlFile.pack()
+        self.kmlFileChoose = Button(self.rightFrame, text = "Choose file...", command= self.chooseKMLFile, state = DISABLED)
+        self.kmlFileChoose.pack()
+        self.kmlStr = ""
         #Create the "Radius" section.
         self.radiusFrame = Frame(self.rightFrame)
         self.radiusFrame.pack()
@@ -131,7 +137,6 @@ class Window():
         self.statusUpdate("Opening file...")
         try:
             data = fileop.csvToList(filename,self)
-            print(len(data))
         except:
             traceback.print_exc()
             self.statusUpdate("There was an issue loading that file.")
@@ -181,7 +186,25 @@ class Window():
         for i in addresses:
             if searchTerm in i.lower():
                 self.addressList.insert(END, i)
+    def kmlCB(self):
+        if self.kmlFileVar.get():
+            self.kmlFileChoose.config(state=NORMAL)
+            self.chooseKMLFile()
+        else:
+            self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
 
+    def chooseKMLFile(self):
+        filename = filedialog.asksaveasfilename(initialdir = self.save_folder)
+        if filename == "":
+            self.status.set("Please input a file location.")
+            self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
+            self.kmlFileVar.set(0)
+            return
+        else:
+            self.kmlStr = filename
+            niceFilename = filename[filename.rfind("/")+1:]
+            self.kmlFileChoose.config(text=niceFilename, state=NORMAL)
+            
     def writeCB(self):
         if self.writeToFileVar.get():
             self.fileChoose.config(state=NORMAL)
@@ -304,6 +327,10 @@ class Window():
             fileHandle = open(self.fileOutput, "w")
             fileHandle.write(outString)
             fileHandle.close()
+        #If we're outputting to KML, do it.
+        if self.kmlFileVar.get():
+            self.statusUpdate("Outputting to KML...")
+            earth.visualizeEarth(dataWithEle, self.kmlStr, self)
         #If we're plotting the data, plot it and display it.
         if self.plotDataVar.get():
             self.statusUpdate("Visualizing data...")

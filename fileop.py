@@ -25,7 +25,7 @@ def csvToList(filename, window=None, header=True):
         ##For each line, add the created dictionary to the list.
         outputList.append(createDict(i,headerList))
         count += 1
-        percent = round((count/total)*100,1)
+        percent = round((count/total)*100,0)
         if percent != oldPercent:
             oldPercent = percent
             if window != None:
