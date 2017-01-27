@@ -17,6 +17,7 @@ def visualizeRadius(data, location, window):
     count = 0
     total = len(data)
     oldPercent = 0
+    viewStats = [["North: ", 0, 0],["South: ", 0, 0],["East: ", 0, 0],["West: ", 0, 0]]
     for d in data:
         if "ELEVATION" in d:
             if type(d["ELEVATION"]) != str:
@@ -24,6 +25,18 @@ def visualizeRadius(data, location, window):
                 x = d["PARCEL LEVEL LONGITUDE"]-location[1]
                 p = (d["ELEVATION"]-minval)/rangeval #Percent of where it stands in the elevation graph.
 
+                if y > 0:
+                    viewStats[0][1] += p
+                    viewStats[0][2] += 1
+                else:
+                    viewStats[1][1] += p
+                    viewStats[1][2] += 1
+                if x > 0:
+                    viewStats[2][1] += p
+                    viewStats[2][2] += 1
+                else:
+                    viewStats[3][1] += p
+                    viewStats[3][2] += 1
                 rgb = (0, 0, 0)
                 if y != 'NULL' and x != 'NULL':
                     if (d.get("isGeo", 0)): #if the data point isn't a house, assign it to a different color scheme
@@ -38,6 +51,9 @@ def visualizeRadius(data, location, window):
             oldPercent = percent
             window.statusUpdate("Plotting points: "+str(oldPercent)+"%")
     plt.plot(0,0,"o",color="green")
+    for stat in viewStats:
+        stat[1] = round((stat[1]/stat[2])*100,2)
+    return viewStats
 
 def visualizeSet(data, window):
     plt.axis('equal')
@@ -66,8 +82,15 @@ def visualizeSet(data, window):
         percent = round((count/total)*100, 1)
         if oldPercent != percent:
             oldPercent = percent
-            window.statusUpdate("Plotting points: "+str(oldPercent)+"%")
 
-def display(name):
+            window.statusUpdate("Plotting points: "+str(oldPercent)+"%, ")
+
+
+def display(name, stats):
     plt.title(name)
+    if(len(stats) > 0):
+        statString = "Average obstructions by direction: "
+        for i in stats:
+            statString += i[0] + str(i[1]) + "%"
+        plt.figtext(0, 0, statString, fontdict=None)
     plt.show(block=False)

@@ -109,6 +109,11 @@ class Window():
         self.includeGeography = Checkbutton(self.rightFrame, text="Include Geography", variable = self.includeGeographyVar)
         self.includeGeography.pack()
 
+        #Create the include geography checkbox.
+        self.includeGeographyVar = IntVar()
+        self.includeGeography = Checkbutton(self.rightFrame, text="Include Geography", variable = self.includeGeographyVar)
+        self.includeGeography.pack()
+
         #Create the offset section.
         self.offsetFrame = Frame(self.rightFrame)
         self.offsetFrame.pack()
@@ -197,6 +202,19 @@ class Window():
             self.chooseKMLFile()
         else:
             self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
+
+    def chooseKMLFile(self):
+        filename = filedialog.asksaveasfilename(initialdir = self.save_folder)
+        if filename == "":
+            self.status.set("Please input a file location.")
+            self.kmlFileChoose.config(text="Choose file...", state=DISABLED)
+            self.kmlFileVar.set(0)
+            return
+        else:
+            self.kmlStr = filename
+            niceFilename = filename[filename.rfind("/")+1:]
+            self.kmlFileChoose.config(text=niceFilename, state=NORMAL)
+
 
     def chooseKMLFile(self):
         filename = filedialog.asksaveasfilename(initialdir = self.save_folder)
@@ -343,11 +361,13 @@ class Window():
         if self.plotDataVar.get():
             self.statusUpdate("Visualizing data...")
             if self.searchWithinVar.get():
-                visuals.visualizeRadius(dataWithEle,latlong, self)
+
+                stats = visuals.visualizeRadius(dataWithEle,latlong, self)
             else:
                 visuals.visualizeSet(dataWithEle, self)
                 address = "Whole dataset"
-            visuals.display(address)
+            visuals.display(address, stats)
+
         self.statusUpdate("Ready.")
         return
 
