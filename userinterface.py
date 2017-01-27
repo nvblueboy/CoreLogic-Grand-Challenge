@@ -343,11 +343,11 @@ class Window():
         if self.plotDataVar.get():
             self.statusUpdate("Visualizing data...")
             if self.searchWithinVar.get():
-                visuals.visualizeRadius(dataWithEle,latlong, self)
+                stats = visuals.visualizeRadius(dataWithEle,latlong, self)
             else:
                 visuals.visualizeSet(dataWithEle, self)
                 address = "Whole dataset"
-            visuals.display(address)
+            visuals.display(address, stats)
         self.statusUpdate("Ready.")
         return
 
