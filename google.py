@@ -1,5 +1,6 @@
 #Using Google Maps' API, take a lat/long and return a elevation.
 
+import math
 import requests
 import json
 import userinterface
@@ -52,6 +53,23 @@ def elevation(data,api_key):
             print(url)
             input()
     return {"results":data,"status":r.status_code}
+	
+def elevationPath(api_key, path="36.578581,-118.291994|36.23998,-116.83171",samples="16"):
+    url  ="https://maps.googleapis.com/maps/api/elevation/json?path=" + path + "&samples=" + str(int(samples)) + "&key=" + api_key
+    r = requests.get(url)
+    raw = r.text
+    try:
+        json_file = json.loads(raw)
+    except:
+        print(raw)
+    elevationList = []
+    for resultset in json_file['results']:
+        try:
+            elevationList.append({"ELEVATION":resultset['elevation'], "PARCEL LEVEL LATITUDE":resultset['location']['lat'], "PARCEL LEVEL LONGITUDE":resultset['location']['lng'], "isGeo":1})
+        except:
+            print(raw)
+            print(url)
+    return elevationList
 
 def getElevations(data, api_key, window, toRun = 256):
     amt = len(data)
@@ -69,6 +87,27 @@ def getElevations(data, api_key, window, toRun = 256):
     results = results + ele["results"]
     window.statusUpdate("Retrieved elevations.")
     return results
+	
+def getGeoElevations(latlong, api_key, window, radius = 1):
+    numSamples = radius*16 #sample every ~100 meters
+    radiusEarth = 6378137.0
+    geoElevations = []
+    strLatLong = str(latlong[0]) + "," + str(latlong[1])
+	#fancy alg to find 36 lat/long coords in a 360 degree circle for pathing
+    for bearing in range(0, 361, 10):
+        dx = radius * math.cos((bearing * math.pi)/180) * 1609
+        dy = radius * math.sin((bearing * math.pi)/180) * 1609
+		
+        dlat = dy/radiusEarth
+        dlon = dx/(radiusEarth * math.cos(math.pi * (latlong[0])))
+		
+        latNew = latlong[0] + ((dlat * 180) / math.pi)
+        lonNew = latlong[1] + ((dlon * 180) / math.pi)
+		
+        path = strLatLong + "|" + str(latNew) + "," + str(lonNew)
+		
+        geoElevations.extend(elevationPath(api_key, path, numSamples))
+    return geoElevations
 
 
 if __name__=="__main__":

@@ -22,7 +22,7 @@ class Window():
     def __init__(self):
         self.root = Tk()
         self.setConfigVars()
-        
+
         #Create and configure the menu.
         self.menubar = Menu(self.root)
         #Create the file menu.
@@ -104,6 +104,11 @@ class Window():
         self.obstructionsOnly = Checkbutton(self.rightFrame, text="Obstructions only", variable = self.obstructionsOnlyVar)
         self.obstructionsOnly.pack()
 
+        #Create the include geography checkbox.
+        self.includeGeographyVar = IntVar()
+        self.includeGeography = Checkbutton(self.rightFrame, text="Include Geography", variable = self.includeGeographyVar)
+        self.includeGeography.pack()
+
         #Create the offset section.
         self.offsetFrame = Frame(self.rightFrame)
         self.offsetFrame.pack()
@@ -163,7 +168,7 @@ class Window():
         self.root.wait_window(win.root)
         self.setConfigVars()
 
-        
+
     def dataListToDisplay(self, data):
         self.addressDict = {}
         self.addressList.delete(0,END)
@@ -204,7 +209,7 @@ class Window():
             self.kmlStr = filename
             niceFilename = filename[filename.rfind("/")+1:]
             self.kmlFileChoose.config(text=niceFilename, state=NORMAL)
-            
+
     def writeCB(self):
         if self.writeToFileVar.get():
             self.fileChoose.config(state=NORMAL)
@@ -239,6 +244,7 @@ class Window():
         self.radiusUnits.config(state=mode)
         self.radiusEntry.config(state=mode)
         self.obstructionsOnly.config(state=mode)
+        self.includeGeography.config(state=mode)
         self.offsetUnits.config(state=mode)
         self.offsetEntry.config(state=mode)
         self.radiusLabel.config(state=mode)
@@ -310,6 +316,8 @@ class Window():
         #If there isn't elevation data available for some reason (or it is a string), filter it out.
         dataWithEle = [d for d in dataWithEle if "ELEVATION" in d]
         dataWithEle = [d for d in dataWithEle if type(d["ELEVATION"]) != str]
+        if self.includeGeographyVar.get():
+            dataWithEle.extend(google.getGeoElevations(latlong, self.google_key, self, radius))
         #If the user wants only obstructions, filter out properties that don't
         #obstruct the view.
         if obstructions:
@@ -323,7 +331,7 @@ class Window():
         #If we're writing out to a file, write.
         if self.writeToFileVar.get():
             self.statusUpdate("Writing to file...")
-            outString = fileop.listToCSV(dataWithEle)
+            outString = fileop.listToCSV([d for d in dataWithEle if "isGeo" not in d])
             fileHandle = open(self.fileOutput, "w")
             fileHandle.write(outString)
             fileHandle.close()

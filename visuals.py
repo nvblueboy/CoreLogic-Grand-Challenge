@@ -23,9 +23,15 @@ def visualizeRadius(data, location, window):
                 y = d["PARCEL LEVEL LATITUDE"]-location[0]
                 x = d["PARCEL LEVEL LONGITUDE"]-location[1]
                 p = (d["ELEVATION"]-minval)/rangeval #Percent of where it stands in the elevation graph.
-                rgb = (p, 0, 1-p)
+
+                rgb = (0, 0, 0)
                 if y != 'NULL' and x != 'NULL':
-                    plt.plot([x],[y],"o",color=rgb)
+                    if (d.get("isGeo", 0)): #if the data point isn't a house, assign it to a different color scheme
+                        rgb = (p, 1-p, 0)
+                        plt.plot([x],[y],"^",color=rgb)
+                    else:
+                        rgb = (p, 0, 1-p)
+                        plt.plot([x],[y],"o",color=rgb)
         count += 1
         percent = round((count/total)*100, 1)
         if oldPercent != percent:
